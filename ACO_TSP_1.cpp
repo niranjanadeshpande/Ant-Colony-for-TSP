@@ -55,7 +55,7 @@ void initializeMatrixAdjacent(float A[SIZE][SIZE]){
 	;
 	for(int h=0;h<SIZE;h++){
 		for(int i=0;i<SIZE;i++){
-			A[h][i]= 0 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(2-0)));
+			A[h][i]= 1 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(56-1)));
 			if(i==h){
 				A[h][i] = INFINITY;
 			}
@@ -104,7 +104,7 @@ void initialize(ant* ants){
 				//do nothing
 			}
 			else{
-				cout<<"Pushing back: "<<z<<endl;
+				//cout<<"Pushing back: "<<z<<endl;
 				ants[i].cities_to_be_visited.push_back(z);
 			}
 
@@ -116,9 +116,9 @@ void initialize(ant* ants){
 
 int chooseNextCity(ant a){
 
-	float val = 0;
-	float temp_val = 0;
-	int most_prob = -1 ;
+	float temp_prob = 0;
+	float best_prob = 0;
+	int most_prob_city = -1 ;
 	float sum = 0;
 	float temp = 0;
 	float prob = 0;
@@ -133,16 +133,17 @@ int chooseNextCity(ant a){
 		for(std::vector<int>::iterator it = a.cities_to_be_visited.begin(); it != a.cities_to_be_visited.end(); ++it){
 			int j = *it;
 			if(adjacency_matrix[a.current_position][j]!=INFINITY){
-				val = pheromone_matrix[a.current_position][j] * ( pow((1/pheromone_matrix[a.current_position][j]), beta));
-				if(val>temp_val){
+				temp_prob = pheromone_matrix[a.current_position][j] * ( pow((1/pheromone_matrix[a.current_position][j]), beta));
+				if(temp_prob>best_prob){
 					//if((find(local_mem.begin(), local_mem.end(), j) != local_mem.end()) == false)
-						most_prob = j ;
+						most_prob_city = j ;
+						best_prob=temp_prob;
 				}
-				temp_val=val;
+
 			}
 		}
 
-		return most_prob;
+		return most_prob_city;
 
 	}
 
@@ -163,13 +164,14 @@ int chooseNextCity(ant a){
 
 				if(prob>temp){
 					//if((find(local_mem.begin(), local_mem.end(), j) != local_mem.end()) == false)
-						most_prob = j;
+						most_prob_city = j;
+						temp = prob;
 				}
-				temp = prob;
+
 			}
 		}
 
-		return most_prob;
+		return most_prob_city;
 
 	}
 
@@ -181,8 +183,8 @@ int chooseNextCity(ant a){
 void touring(ant* ants){
 	int n = SIZE;
 	int cityChosen = -1;
-	for(int i=1;i<=SIZE;i++){ //<MAXITER
-		if(i<n){
+	//for(int i=1;i<=SIZE;i++){ //<MAXITER
+		//if(i<n){
 			for(int k=0;k<numants;k++){
 				cityChosen = chooseNextCity(ants[k]);
 
@@ -190,9 +192,9 @@ void touring(ant* ants){
 
 					ants[k].local_mem.push_back(cityChosen);
 
-					cout<<"Current position "<<ants[k].current_position <<" city chosen "<< cityChosen<<" initial position "<<ants[k].initial_position<<endl;
+					//cout<<"Current position "<<ants[k].current_position <<" city chosen "<< cityChosen<<" initial position "<<ants[k].initial_position<<endl;
 
-					cout<<adjacency_matrix[ants[k].current_position][cityChosen]<<endl;
+					//cout<<adjacency_matrix[ants[k].current_position][cityChosen]<<endl;
 
 					ants[k].route_cost += adjacency_matrix[ants[k].current_position][cityChosen];
 
@@ -204,9 +206,9 @@ void touring(ant* ants){
 				}
 			}
 
-		}
+		//}
 
-	}
+	//}
 
 
 
@@ -215,6 +217,8 @@ void touring(ant* ants){
 void global_update(ant* ants){
 	int best_ant = 0 ;
 	float best_val = 999;
+
+	//finds the best ant and updates
 
 	for(int k=0;k<numants;k++){
 		int sum = 0;
@@ -237,6 +241,8 @@ void global_update(ant* ants){
 		}
 	}
 	int p = 0;
+
+	//actual global update
 	for(std::vector<int>::iterator it = ants[best_ant].local_mem.begin(); it != ants[best_ant].local_mem.end(); ++it){
 			if(p==0){
 				p = ants[best_ant].current_position;
@@ -252,44 +258,78 @@ void global_update(ant* ants){
 
 }
 
+void printExecutionTime(clock_t begin, clock_t end){
+	double duration = double(end - begin)/CLOCKS_PER_SEC;
+	cout<<"Time taken to execute (s) "<<duration<<endl;
+}
+
 int main(){
 
 	ant ants[numants];
-	int iter = 1;
+
+	float prev_cost[numants];
+	bool equal = false;
+	int iter = 0;
 	vector<int> new_;
 	//printMatrix(pheromone_matrix);
 	initialize(ants);
+
+	clock_t begin = clock();
+	clock_t end;
+
 	while(iter!=MAXITER){
 
 
-		//cout<<"Iteration: "<<iter<<endl;
+		cout<<"Iteration: "<<iter<<endl;
+
 		touring(ants);
 		global_update(ants);
 
-		iter = iter + 1;
+
 		new_ = ants[best_tour].local_mem;
-		//for(int u=0;u<numants;u++){
-			//ants[u].local_mem.clear();
-			//ants[u].cities_to_be_visited.clear();
-		//}
 
-		if(iter == MAXITER){
-			cout << "Best tour is : "<<new_.size()<<" by ant "<<best_tour<<" whose initial position was "<<ants[best_tour].initial_position<<endl;
-			for(std::vector<int>::iterator it = new_.begin(); it != new_.end(); ++it){
+		//compare previous values with current route values
 
-				cout << *it << "->";
+		if(iter!=0){
+
+			for(int y = 0;y<numants;y++){
+				if(prev_cost[y]==ants[y].route_cost){
+					equal = true;
+				}
 			}
+		}
+
+
+		//store new values in prev_cost
+
+		for(int y = 0;y<numants;y++){
+
+			cout<<"Ant "<<y <<" route cost "<<ants[y].route_cost<<endl;
+			prev_cost[y] = ants[y].route_cost;
+		}
+
+		//clear path followed
+
+		for(int u=0;u<numants;u++){
+			ants[u].local_mem.clear();
+			//ants[u].cities_to_be_visited.clear();
+		}
+		iter = iter + 1;
+
+		//if the costs are the same, terminate
+
+		if(equal){
+			cout<<"Convergence reached at iteration "<<(iter-1)<<endl;
+			cout << "Best tour is by ant "<<best_tour<<endl;
+			end = clock();
+			printExecutionTime(begin, end);
+			exit(0);
 		}
 	}
 
-	for(int y = 0;y<numants;y++){
-
-		cout<<"Ant "<<y <<" route cost "<<ants[y].route_cost<<endl;
-
-	}
-
-
-
+	end = clock();
+	printExecutionTime(begin, end);
+	cout << "Best tour is by ant "<<best_tour<<endl;
 
 	return 0;
 }
