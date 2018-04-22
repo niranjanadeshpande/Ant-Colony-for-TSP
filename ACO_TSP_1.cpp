@@ -13,9 +13,9 @@
 #include <algorithm>
 #include <ctime>
 #define MAXITER 200
-#define MAXANTS 3
-#define SIZE 100
-#define GOAL 97
+#define MAXANTS 1024
+#define SIZE 1024
+#define GOAL 970
 
 using namespace std;
 
